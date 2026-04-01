@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Mono Pharm</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0a1628;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: #1a2942;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        h2 { text-align: center; color: #ff6b35; margin-bottom: 20px; }
+        
+        /* شريط الحساب أعلى الصفحة */
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #0d2137;
+            border: 2px solid #ff6b35;
+            transition: opacity 0.3s;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: none;
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+
+        input, select {
+            background: #0d2137;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        input[type="file"] { padding: 10px; background: #0d2137; cursor: pointer; color: #ccc; }
+        input[type="file"]::file-selector-button { background: #ff6b35; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; font-weight: bold; transition: 0.3s; }
+        input[type="file"]::file-selector-button:hover { background: #ff8c42; }
+
+        button.primary-btn { background: #ff6b35; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 15px; }
+        button.primary-btn:hover { background: #ff8c42; }
+        button.primary-btn:disabled { background: #555; cursor: not-allowed; color: #aaa; }
+        
+        button.danger-btn { background: #ff4757; color: white; padding: 10px 15px; margin: 0; width: auto; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 8px; transition: 0.3s; }
+        button.danger-btn:hover { background: #ff6b81; }
+        
+        button.edit-btn { background: #f39c12; color: white; padding: 10px 15px; margin: 0; width: auto; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 8px; transition: 0.3s; }
+        button.edit-btn:hover { background: #f1c40f; }
+
+        .hidden { display: none !important; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; background: #0d2137; margin: 0; color: white; cursor: pointer; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; transition: 0.3s; }
+        .tab-btn.active { background: #ff6b35; }
+
+        label { font-size: 14px; color: #e0e0e0; margin-top: 10px; display: block; font-weight: 600; }
+        .help-text { font-size: 12px; color: #8898aa; margin-top: -5px; margin-bottom: 10px; }
+
+        /* تنسيق جدول الهيستوري */
+        .history-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .history-card {
+            background: #0d2137;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-info h4 { margin: 0 0 5px 0; color: #ffcfb8; display: flex; align-items: center; gap: 10px; }
+        .history-info p { margin: 0 0 3px 0; font-size: 13px; color: #aaa; }
+        .history-actions { display: flex; flex-direction: column; gap: 8px; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge-active { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+        .badge-scheduled { background: rgba(243, 156, 18, 0.2); color: #f39c12; }
+        .badge-expired { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+
+        /* Modal للتعديل الشامل */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000;
+            display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .modal-content { 
+            background: #1a2942; padding: 25px; border-radius: 15px; width: 90%; max-width: 500px; 
+            border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto; 
+        }
+        .current-media { margin-top: 10px; margin-bottom: 10px; }
+        .current-media img, .current-media video { max-width: 100%; height: auto; max-height: 150px; border-radius: 8px; border: 1px solid #444; }
+
+        /* -------------------------------------
+           إشعارات توست (Custom Toast CSS) 
+           ------------------------------------- */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: #1a2942;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 5px solid #4ade80;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            min-width: 250px;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast.error {
+            border-left-color: #ff4757;
+        }
+        .toast-icon {
+            font-size: 22px;
+        }
+        .toast-message {
+            font-size: 14px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Toast Notification Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- شاشة تسجيل الدخول -->
+<div class="container" id="authBox">
+    <h2>Admin Portal</h2>
+    <div class="tabs">
+        <div class="tab-btn active" onclick="switchAuth('login')">Login</div>
+        <div class="tab-btn" onclick="switchAuth('register')">Activate ID</div>
+    </div>
+    
+    <input type="number" id="adminId" placeholder="Admin ID (1 to 1,000,000)">
+    <input type="password" id="adminPassword" placeholder="Password">
+    
+    <button class="primary-btn" id="loginBtn" onclick="handleLogin()">Login</button>
+    <button class="primary-btn hidden" id="registerBtn" onclick="handleRegister()">Activate Now</button>
+</div>
+
+<!-- لوحة التحكم الرئيسية -->
+<div class="container hidden" id="dashboardBox">
+    
+    <!-- قسم الصورة الشخصية وتسجيل الخروج -->
+    <div class="header-top">
+        <div class="profile-section">
+            <img src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png" alt="Avatar" class="avatar" id="adminAvatar">
+            <div>
+                <div style="font-weight: bold; font-size: 18px;">Admin: <span id="displayAdminId" style="color: #ff6b35;"></span></div>
+                <label for="avatarUpload" id="avatarLabel" style="cursor: pointer; color: #b8c4d6; font-size: 13px; margin: 0; text-decoration: underline; transition: 0.3s;">Change Photo</label>
+                <input type="file" id="avatarUpload" class="hidden" accept="image/*" onchange="uploadAvatar(event)">
+            </div>
+        </div>
+        <button class="danger-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- التبديل بين النشر والتاريخ -->
+    <div class="tabs">
+        <div class="tab-btn active" id="tabPublish" onclick="switchTab('publish')">Publish New Content</div>
+        <div class="tab-btn" id="tabHistory" onclick="switchTab('history')">History & Manage</div>
+    </div>
+
+    <!-- 1️⃣ قسم إضافة محتوى جديد -->
+    <div id="publishSection">
+        <label>Where to display?</label>
+        <select id="sectionType" onchange="handleTypeChange('publish')">
+            <option value="banner">Banner (Top Slider)</option>
+            <option value="content_img">Content Card (Image/GIF)</option>
+            <option value="content_vid">Content Card (Video)</option>
+        </select>
+
+        <label>Details</label>
+        <input type="text" id="itemTitle" placeholder="Title (e.g., New Arrivals)">
+        <input type="text" id="itemDesc" placeholder="Description / Subtitle">
+        
+        <label>Upload Media (Images/Videos)</label>
+        <input type="file" id="itemFiles" multiple accept="image/*,video/*">
+        <div class="help-text" id="uploadHelp">Select multiple images/videos for the slider.</div>
+        
+        <input type="text" id="itemLink" placeholder="Redirect Link (Only for Banners)">
+        
+        <label>Schedule & Duration</label>
+        <div class="help-text">When should this content start appearing?</div>
+        <input type="datetime-local" id="startDate">
+        
+        <div class="help-text" style="margin-top: 5px;">How long should it be visible from the start date?</div>
+        <div style="display: flex; gap: 10px;">
+            <input type="number" id="durationValue" placeholder="Duration" value="24" style="flex: 1;">
+            <select id="durationType" style="flex: 1;">
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+            </select>
+        </div>
+
+        <button class="primary-btn" id="publishBtn" onclick="publishData()">Publish to App</button>
+    </div>
+
+    <!-- 2️⃣ قسم الهيستوري والتعديل -->
+    <div id="historySection" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin: 0; color: #e0e0e0;">Currently Uploaded Content</h3>
+            <button class="primary-btn" style="width: auto; margin:0; padding: 8px 15px;" onclick="loadHistory()">Refresh</button>
+        </div>
+        <div class="history-list" id="historyList">Loading...</div>
+    </div>
+</div>
+
+<!-- Modal للتعديل الشامل -->
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h3 style="margin-top: 0; color: #ff6b35; text-align: center;">Edit Content Data</h3>
+        <input type="hidden" id="editId">
+        <input type="hidden" id="editTable">
+        <input type="hidden" id="editOldMediaUrl">
+        
+        <label>Title</label>
+        <input type="text" id="editTitle" placeholder="Title">
+        
+        <label>Description</label>
+        <input type="text" id="editDesc" placeholder="Description">
+        
+        <div id="editLinkContainer">
+            <label>Redirect Link</label>
+            <input type="text" id="editLink" placeholder="Link">
+        </div>
+        
+        <label>Current Media</label>
+        <div class="current-media" id="editCurrentMedia"></div>
+        
+        <label>Replace Media (Optional)</label>
+        <input type="file" id="editFile" accept="image/*,video/*">
+        <div class="help-text">Leave empty to keep current media. Only 1 file allowed per edit.</div>
+        
+        <label>Start Date (Created At)</label>
+        <input type="datetime-local" id="editStartDate">
+        
+        <label>End Date (Expires At)</label>
+        <input type="datetime-local" id="editEndDate">
+        
+        <div style="display: flex; gap: 10px; margin-top: 25px;">
+            <button class="primary-btn" id="saveEditBtn" style="margin:0;" onclick="saveEditData()">Save Changes</button>
+            <button class="primary-btn" style="margin:0; background: #555;" onclick="closeEditModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    /* 🔐 SUPABASE CONNECTION */
+    const supabaseUrl = 'https://jwbcopyafwheyljvjexo.supabase.co';
+     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3YmNvcHlhZndoZXlsanZqZXhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NzcwNDcsImV4cCI6MjA5MDU1MzA0N30.muFXB6elv60C_gxe_2e2Wix_gfQxQ0VGQnZFqlh9dnw';
+    
+    const { createClient } = window.supabase;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    let currentAdminId = null;
+
+    /* -------------------------------------
+       دالة إظهار التوست (Toast Notification)
+       ------------------------------------- */
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icon = type === 'success' ? '✅' : '⚠️';
+        
+        toast.innerHTML = `
+            <span class="toast-icon">${icon}</span>
+            <div class="toast-message">${message}</div>
+        `;
+        
+        container.appendChild(toast);
+        
+        // الانيميشن للظهور
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        // إخفاء وحذف بعد 3.5 ثواني
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 400); // استنى الترانزيشن يخلص
+        }, 3500);
+    }
+
+    // تهيئة الصفحة
+    window.addEventListener('DOMContentLoaded', () => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('startDate').value = now.toISOString().slice(0, 16);
+        
+        const savedId = localStorage.getItem('adminId');
+        const savedAvatar = localStorage.getItem('adminAvatar');
+        
+        if (savedId) {
+            currentAdminId = parseInt(savedId, 10);
+            document.getElementById('displayAdminId').innerText = currentAdminId;
+            if(savedAvatar) {
+                document.getElementById('adminAvatar').src = savedAvatar;
+            }
+            showDashboard();
+        }
+    });
+
+    function switchAuth(type) {
+        document.querySelectorAll('#authBox .tab-btn').forEach(btn => btn.classList.remove('active'));
+        if(type === 'login') {
+            document.querySelectorAll('#authBox .tab-btn')[0].classList.add('active');
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('registerBtn').classList.add('hidden');
+        } else {
+            document.querySelectorAll('#authBox .tab-btn')[1].classList.add('active');
+            document.getElementById('loginBtn').classList.add('hidden');
+            document.getElementById('registerBtn').classList.remove('hidden');
+        }
+    }
+
+    function switchTab(tab) {
+        document.getElementById('tabPublish').classList.remove('active');
+        document.getElementById('tabHistory').classList.remove('active');
+        document.getElementById('publishSection').classList.add('hidden');
+        document.getElementById('historySection').classList.add('hidden');
+
+        if(tab === 'publish') {
+            document.getElementById('tabPublish').classList.add('active');
+            document.getElementById('publishSection').classList.remove('hidden');
+        } else {
+            document.getElementById('tabHistory').classList.add('active');
+            document.getElementById('historySection').classList.remove('hidden');
+            loadHistory();
+        }
+    }
+
+    function showDashboard() {
+        document.getElementById('authBox').classList.add('hidden');
+        document.getElementById('dashboardBox').classList.remove('hidden');
+        loadHistory();
+    }
+
+    function logout() {
+        localStorage.removeItem('adminId');
+        currentAdminId = null;
+        document.getElementById('dashboardBox').classList.add('hidden');
+        document.getElementById('authBox').classList.remove('hidden');
+        document.getElementById('adminId').value = '';
+        document.getElementById('adminPassword').value = '';
+        showToast('Logged out successfully', 'success');
+    }
+
+    async function handleRegister() {
+        const id = parseInt(document.getElementById('adminId').value, 10);
+        const password = document.getElementById('adminPassword').value.trim();
+
+        if (isNaN(id)) return showToast('Please enter a valid numeric ID', 'error');
+        if (!password) return showToast('Please enter Password', 'error');
+
+        const { error } = await supabaseClient.from('admins').insert([{ id, password }]);
+
+        if (error) {
+            showToast('Error: ID already exists or invalid.', 'error');
+        } else {
+            showToast('Activated successfully! Please login.', 'success');
+            switchAuth('login');
+        }
+    }
+
+    async function handleLogin() {
+        const id = parseInt(document.getElementById('adminId').value, 10);
+        const password = document.getElementById('adminPassword').value.trim();
+
+        if (isNaN(id) || !password) return showToast('Please enter ID and Password', 'error');
+
+        const { data, error } = await supabaseClient
+            .from('admins')
+            .select('*')
+            .eq('id', id)
+            .eq('password', password)
+            .maybeSingle();
+
+        if (error) return showToast('Database error: ' + error.message, 'error');
+
+        if (data) {
+            localStorage.setItem('adminId', id);
+            currentAdminId = id;
+            document.getElementById('displayAdminId').innerText = id;
+            
+            if(data.avatar_url) {
+                localStorage.setItem('adminAvatar', data.avatar_url);
+                document.getElementById('adminAvatar').src = data.avatar_url;
+            }
+            showDashboard();
+            showToast('Welcome back, Admin!', 'success');
+        } else {
+            showToast('Invalid ID or Password', 'error');
+        }
+    }
+
+    // ✅ دالة رفع الصورة الشخصية (مع مؤشر التحميل والتوست والـ Cache Busting)
+    async function uploadAvatar(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        
+        const labelText = document.getElementById('avatarLabel');
+        
+        try {
+            // إظهار للمستخدم إن فيه تحميل بيحصل
+            document.getElementById('adminAvatar').style.opacity = '0.5';
+            labelText.innerText = '⏳ Uploading...';
+            labelText.style.color = '#f39c12';
+            labelText.style.pointerEvents = 'none';
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `avatar_${currentAdminId}_${Date.now()}.${fileExt}`;
+            const filePath = `avatars/${fileName}`;
+
+            // الرفع للستوريدج
+            const { error: uploadError } = await supabaseClient.storage
+                .from('media') 
+                .upload(filePath, file);
+
+            if (uploadError) throw new Error("Failed to upload image.");
+
+            // جلب الرابط وإضافة Cache Busting عشان الصورة تظهر في نفس اللحظة
+            const { data } = supabaseClient.storage.from('media').getPublicUrl(filePath);
+            const publicUrl = data.publicUrl + `?t=${Date.now()}`; 
+
+            // حفظ في الداتابيز
+            const { error: dbError } = await supabaseClient
+                .from('admins')
+                .update({ avatar_url: publicUrl })
+                .eq('id', currentAdminId);
+                
+            if (dbError) throw new Error("Database update failed.");
+
+            // تحديث الواجهة
+            document.getElementById('adminAvatar').src = publicUrl;
+            localStorage.setItem('adminAvatar', publicUrl);
+            
+            showToast('Profile photo updated successfully!', 'success');
+
+        } catch(e) {
+            console.error(e);
+            showToast(e.message || 'Failed to update photo.', 'error');
+        } finally {
+            // إرجاع الزرار لشكله الطبيعي
+            document.getElementById('adminAvatar').style.opacity = '1';
+            labelText.innerText = 'Change Photo';
+            labelText.style.color = '#b8c4d6';
+            labelText.style.pointerEvents = 'auto';
+            event.target.value = ''; // تصفير الملف
+        }
+    }
+
+    async function uploadFile(file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `uploads/${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const { error } = await supabaseClient.storage.from('media').upload(fileName, file);
+        if (error) throw error;
+        const { data } = supabaseClient.storage.from('media').getPublicUrl(fileName);
+        return data.publicUrl;
+    }
+
+    function handleTypeChange(mode) {
+        if(mode === 'publish') {
+            const type = document.getElementById('sectionType').value;
+            const fileInput = document.getElementById('itemFiles');
+            const linkInput = document.getElementById('itemLink');
+            const helpText = document.getElementById('uploadHelp');
+
+            if (type === 'content_vid') {
+                fileInput.accept = 'video/*';
+                linkInput.style.display = 'none';
+                helpText.innerText = "Select one or more videos.";
+            } else if (type === 'content_img') {
+                fileInput.accept = 'image/*';
+                linkInput.style.display = 'none';
+                helpText.innerText = "Select one or more images/GIFs.";
+            } else {
+                fileInput.accept = 'image/*,video/*';
+                linkInput.style.display = 'block';
+                helpText.innerText = "Select multiple images/videos for the slider.";
+            }
+        }
+    }
+
+    async function publishData() {
+        const type = document.getElementById('sectionType').value;
+        const title = document.getElementById('itemTitle').value.trim();
+        const desc = document.getElementById('itemDesc').value.trim();
+        const link = document.getElementById('itemLink').value.trim();
+        const files = document.getElementById('itemFiles').files;
+        const startDateInput = document.getElementById('startDate').value;
+        const durationVal = parseInt(document.getElementById('durationValue').value, 10);
+        const durationType = document.getElementById('durationType').value;
+        
+        const btn = document.getElementById('publishBtn');
+
+        if (files.length === 0) return showToast('Please upload at least one Media file!', 'error');
+        if (!startDateInput) return showToast('Please select a Start Date!', 'error');
+        if (isNaN(durationVal) || durationVal <= 0) return showToast('Please enter a valid duration!', 'error');
+
+        let startDate = new Date(startDateInput);
+        let expiresAt = new Date(startDate);
+        if (durationType === 'hours') expiresAt.setHours(expiresAt.getHours() + durationVal);
+        else expiresAt.setDate(expiresAt.getDate() + durationVal);
+
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Uploading files & Saving... ⏳';
+
+            const insertPromises = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const publicUrl = await uploadFile(file);
+
+                if (type === 'banner') {
+                    insertPromises.push(supabaseClient.from('banners').insert([{
+                        title: files.length > 1 ? `${title} (${i+1})` : title, 
+                        description: desc, media_url: publicUrl, link: link,
+                        created_at: startDate.toISOString(), expires_at: expiresAt.toISOString()
+                    }]));
+                } else {
+                    const contentType = type === 'content_img' ? 'image' : 'video';
+                    insertPromises.push(supabaseClient.from('contents').insert([{
+                        type: contentType, title: files.length > 1 ? `${title} (${i+1})` : title,
+                        description: desc, media_url: publicUrl,
+                        created_at: startDate.toISOString(), expires_at: expiresAt.toISOString()
+                    }]));
+                }
+            }
+
+            const results = await Promise.all(insertPromises);
+            if (results.some(res => res.error)) throw results.find(res => res.error).error;
+
+            showToast('Published successfully!', 'success');
+
+            document.getElementById('itemTitle').value = '';
+            document.getElementById('itemDesc').value = '';
+            document.getElementById('itemLink').value = '';
+            document.getElementById('itemFiles').value = '';
+            
+        } catch (error) {
+            console.error(error);
+            showToast('Failed to publish content.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Publish to App';
+        }
+    }
+
+    async function loadHistory() {
+        const list = document.getElementById('historyList');
+        list.innerHTML = '<div style="text-align:center; padding: 20px;">Loading history...</div>';
+        
+        try {
+            const [bannersRes, contentsRes] = await Promise.all([
+                supabaseClient.from('banners').select('*').order('created_at', {ascending: false}),
+                supabaseClient.from('contents').select('*').order('created_at', {ascending: false})
+            ]);
+            
+            let html = '';
+            const now = new Date();
+            
+            const renderItem = (item, table) => {
+                const start = new Date(item.created_at || item.expires_at); 
+                const end = new Date(item.expires_at);
+                
+                let statusHtml = '';
+                if(now < start) statusHtml = '<span class="badge badge-scheduled">Scheduled (Waiting)</span>';
+                else if(now > end) statusHtml = '<span class="badge badge-expired">Expired</span>';
+                else statusHtml = '<span class="badge badge-active">Active Now</span>';
+
+                let mediaPreview = '';
+                if(item.media_url && item.media_url.match(/\.(mp4|webm)/i)) {
+                    mediaPreview = `<video src="${item.media_url}" style="width:70px; height:70px; object-fit:cover; border-radius:8px; border:1px solid #444;" muted></video>`;
+                } else {
+                    mediaPreview = `<img src="${item.media_url}" style="width:70px; height:70px; object-fit:cover; border-radius:8px; border:1px solid #444;">`;
+                }
+
+                const safeItem = JSON.stringify(item).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+
+                return `
+                <div class="history-card">
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        ${mediaPreview}
+                        <div class="history-info">
+                            <h4>${item.title || 'No Title'} ${statusHtml}</h4>
+                            <p><strong>Section:</strong> ${table === 'banners' ? 'Banner' : 'Content Card'}</p>
+                            <p><strong>Start:</strong> ${start.toLocaleString()}</p>
+                            <p><strong>End:</strong> ${end.toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <div class="history-actions">
+                        <button class="edit-btn" onclick="openEditModal('${table}', '${safeItem}')">Edit Data</button>
+                        <button class="danger-btn" onclick="deleteItem(${item.id}, '${table}')">Delete</button>
+                    </div>
+                </div>`;
+            };
+
+            if(bannersRes.data) bannersRes.data.forEach(item => html += renderItem(item, 'banners'));
+            if(contentsRes.data) contentsRes.data.forEach(item => html += renderItem(item, 'contents'));
+
+            list.innerHTML = html || '<div style="text-align:center; padding: 20px;">No content found.</div>';
+        } catch(e) {
+            console.error(e);
+            list.innerHTML = '<div style="color:#ff4757; text-align:center;">Failed to load history.</div>';
+        }
+    }
+
+    async function deleteItem(id, table) {
+        if(!confirm('Are you sure you want to permanently delete this item?')) return;
+        try {
+            await supabaseClient.from(table).delete().eq('id', id);
+            showToast('Item deleted successfully!', 'success');
+            loadHistory(); 
+        } catch(e) {
+            console.error(e);
+            showToast('Failed to delete item.', 'error');
+        }
+    }
+
+    function openEditModal(table, itemStr) {
+        const item = JSON.parse(itemStr.replace(/&apos;/g, "'").replace(/&quot;/g, '"'));
+        
+        document.getElementById('editId').value = item.id;
+        document.getElementById('editTable').value = table;
+        document.getElementById('editOldMediaUrl').value = item.media_url;
+        
+        document.getElementById('editTitle').value = item.title || '';
+        document.getElementById('editDesc').value = item.description || '';
+        
+        if(table === 'banners') {
+            document.getElementById('editLinkContainer').style.display = 'block';
+            document.getElementById('editLink').value = item.link || '';
+        } else {
+            document.getElementById('editLinkContainer').style.display = 'none';
+        }
+
+        let mediaPreview = '';
+        if(item.media_url && item.media_url.match(/\.(mp4|webm)/i)) {
+            mediaPreview = `<video src="${item.media_url}" controls></video>`;
+            document.getElementById('editFile').accept = 'video/*';
+        } else {
+            mediaPreview = `<img src="${item.media_url}">`;
+            document.getElementById('editFile').accept = 'image/*';
+        }
+        
+        if(table === 'banners') {
+            document.getElementById('editFile').accept = 'image/*,video/*';
+        }
+        
+        document.getElementById('editCurrentMedia').innerHTML = mediaPreview;
+        document.getElementById('editFile').value = '';
+
+        const formatLocal = (isoStr) => {
+            if(!isoStr) return '';
+            const d = new Date(isoStr);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            return d.toISOString().slice(0,16);
+        };
+        
+        document.getElementById('editStartDate').value = formatLocal(item.created_at || item.expires_at);
+        document.getElementById('editEndDate').value = formatLocal(item.expires_at);
+        
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function saveEditData() {
+        const id = document.getElementById('editId').value;
+        const table = document.getElementById('editTable').value;
+        const title = document.getElementById('editTitle').value.trim();
+        const desc = document.getElementById('editDesc').value.trim();
+        const link = document.getElementById('editLink').value.trim();
+        const fileInput = document.getElementById('editFile');
+        const oldMediaUrl = document.getElementById('editOldMediaUrl').value;
+        
+        const startVal = document.getElementById('editStartDate').value;
+        const endVal = document.getElementById('editEndDate').value;
+        const btn = document.getElementById('saveEditBtn');
+
+        if(!startVal || !endVal) return showToast('Please set both Start and End dates.', 'error');
+
+        const start = new Date(startVal).toISOString();
+        const end = new Date(endVal).toISOString();
+
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Saving Changes... ⏳';
+
+            let finalMediaUrl = oldMediaUrl;
+
+            if(fileInput.files.length > 0) {
+                finalMediaUrl = await uploadFile(fileInput.files[0]);
+            }
+
+            const updateData = {
+                title: title,
+                description: desc,
+                media_url: finalMediaUrl,
+                created_at: start,
+                expires_at: end
+            };
+
+            if(table === 'banners') {
+                updateData.link = link;
+            }
+            
+            if(table === 'contents' && fileInput.files.length > 0) {
+                const newFileType = fileInput.files[0].type;
+                updateData.type = newFileType.startsWith('video') ? 'video' : 'image';
+            }
+
+            await supabaseClient.from(table).update(updateData).eq('id', id);
+            
+            closeEditModal();
+            loadHistory(); 
+            showToast('Content updated successfully!', 'success');
+        } catch(e) {
+            console.error(e);
+            showToast('Failed to update content.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Save Changes';
+        }
+    }
+</script>
+</body>
+</html>
