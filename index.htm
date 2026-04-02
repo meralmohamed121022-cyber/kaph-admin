@@ -195,11 +195,8 @@
     <button class="primary-btn" id="loginBtn" onclick="handleLogin()">Login</button>
     <button class="primary-btn hidden" id="registerBtn" onclick="handleRegister()">Activate Now</button>
 </div>
-
-<!-- لوحة التحكم الرئيسية -->
 <div class="container hidden" id="dashboardBox">
     
-    <!-- قسم الصورة الشخصية وتسجيل الخروج -->
     <div class="header-top">
         <div class="profile-section">
             <img src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png" alt="Avatar" class="avatar" id="adminAvatar">
@@ -209,10 +206,13 @@
                 <input type="file" id="avatarUpload" class="hidden" accept="image/*" onchange="uploadAvatar(event)">
             </div>
         </div>
-        <button class="danger-btn" onclick="logout()">Logout</button>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="edit-btn" style="width: auto; margin: 0; background-color: #2ecc71;" onclick="window.open('https://monosystem.vercel.app/', '_blank')">Live Preview 🌐</button>
+            <button class="danger-btn" onclick="logout()">Logout</button>
+        </div>
     </div>
 
-    <!-- التبديل بين النشر والتاريخ -->
     <div class="tabs">
         <div class="tab-btn active" id="tabPublish" onclick="switchTab('publish')">Publish New Content</div>
         <div class="tab-btn" id="tabHistory" onclick="switchTab('history')">History & Manage</div>
@@ -540,72 +540,79 @@
         }
     }
 
-    async function publishData() {
-        const type = document.getElementById('sectionType').value;
-        const title = document.getElementById('itemTitle').value.trim();
-        const desc = document.getElementById('itemDesc').value.trim();
-        const link = document.getElementById('itemLink').value.trim();
-        const files = document.getElementById('itemFiles').files;
-        const startDateInput = document.getElementById('startDate').value;
-        const durationVal = parseInt(document.getElementById('durationValue').value, 10);
-        const durationType = document.getElementById('durationType').value;
-        
-        const btn = document.getElementById('publishBtn');
+   async function publishData() {
+    const type = document.getElementById('sectionType').value;
+    const title = document.getElementById('itemTitle').value.trim();
+    const desc = document.getElementById('itemDesc').value.trim();
+    const link = document.getElementById('itemLink').value.trim();
+    const files = document.getElementById('itemFiles').files;
+    const startDateInput = document.getElementById('startDate').value;
+    const durationVal = parseInt(document.getElementById('durationValue').value, 10);
+    const durationType = document.getElementById('durationType').value;
+    
+    const btn = document.getElementById('publishBtn');
 
-        if (files.length === 0) return showToast('Please upload at least one Media file!', 'error');
-        if (!startDateInput) return showToast('Please select a Start Date!', 'error');
-        if (isNaN(durationVal) || durationVal <= 0) return showToast('Please enter a valid duration!', 'error');
+    if (files.length === 0) return showToast('Please upload at least one Media file!', 'error');
+    if (!startDateInput) return showToast('Please select a Start Date!', 'error');
+    if (isNaN(durationVal) || durationVal <= 0) return showToast('Please enter a valid duration!', 'error');
 
-        let startDate = new Date(startDateInput);
-        let expiresAt = new Date(startDate);
-        if (durationType === 'hours') expiresAt.setHours(expiresAt.getHours() + durationVal);
-        else expiresAt.setDate(expiresAt.getDate() + durationVal);
+    let startDate = new Date(startDateInput);
+    let expiresAt = new Date(startDate);
+    if (durationType === 'hours') expiresAt.setHours(expiresAt.getHours() + durationVal);
+    else expiresAt.setDate(expiresAt.getDate() + durationVal);
 
-        try {
-            btn.disabled = true;
-            btn.innerText = 'Uploading files & Saving... ⏳';
+    try {
+        btn.disabled = true;
+        btn.innerText = 'Uploading files & Saving... ⏳';
 
-            const insertPromises = [];
+        const insertPromises = [];
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const publicUrl = await uploadFile(file);
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const publicUrl = await uploadFile(file);
 
-                if (type === 'banner') {
-                    insertPromises.push(supabaseClient.from('banners').insert([{
-                        title: files.length > 1 ? `${title} (${i+1})` : title, 
-                        description: desc, media_url: publicUrl, link: link,
-                        created_at: startDate.toISOString(), expires_at: expiresAt.toISOString()
-                    }]));
-                } else {
-                    const contentType = type === 'content_img' ? 'image' : 'video';
-                    insertPromises.push(supabaseClient.from('contents').insert([{
-                        type: contentType, title: files.length > 1 ? `${title} (${i+1})` : title,
-                        description: desc, media_url: publicUrl,
-                        created_at: startDate.toISOString(), expires_at: expiresAt.toISOString()
-                    }]));
-                }
+            if (type === 'banner') {
+                insertPromises.push(supabaseClient.from('banners').insert([{
+                    title: files.length > 1 ? `${title} (${i+1})` : title, 
+                    description: desc, media_url: publicUrl, link: link,
+                    created_at: startDate.toISOString(), expires_at: expiresAt.toISOString()
+                }]));
+            } else {
+                const contentType = type === 'content_img' ? 'image' : 'video';
+                insertPromises.push(supabaseClient.from('contents').insert([{
+                    type: contentType, title: files.length > 1 ? `${title} (${i+1})` : title,
+                    description: desc, media_url: publicUrl,
+                    created_at: startDate.toISOString(), expires_at: expiresAt.toISOString()
+                }]));
             }
-
-            const results = await Promise.all(insertPromises);
-            if (results.some(res => res.error)) throw results.find(res => res.error).error;
-
-            showToast('Published successfully!', 'success');
-
-            document.getElementById('itemTitle').value = '';
-            document.getElementById('itemDesc').value = '';
-            document.getElementById('itemLink').value = '';
-            document.getElementById('itemFiles').value = '';
-            
-        } catch (error) {
-            console.error(error);
-            showToast('Failed to publish content.', 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerText = 'Publish to App';
         }
-    }
 
+        const results = await Promise.all(insertPromises);
+        if (results.some(res => res.error)) throw results.find(res => res.error).error;
+
+        // التعديل هنا يا Mo
+        showToast('Published successfully!', 'success');
+
+        // سؤال المستخدم لو حابب يشوف النتيجة لايف
+        setTimeout(() => {
+            if (confirm('Content is now live! Would you like to view the live preview?')) {
+                window.open('https://monosystem.vercel.app/', '_blank');
+            }
+        }, 500);
+
+        document.getElementById('itemTitle').value = '';
+        document.getElementById('itemDesc').value = '';
+        document.getElementById('itemLink').value = '';
+        document.getElementById('itemFiles').value = '';
+        
+    } catch (error) {
+        console.error(error);
+        showToast('Failed to publish content.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Publish to App';
+    }
+}
     async function loadHistory() {
         const list = document.getElementById('historyList');
         list.innerHTML = '<div style="text-align:center; padding: 20px;">Loading history...</div>';
