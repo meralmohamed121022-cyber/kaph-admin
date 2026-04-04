@@ -177,7 +177,14 @@
     </style>
 </head>
 <body>
-
+<div id="gatekeeperOverlay" style="position: fixed; inset: 0; background: #0a1628; z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 15px; font-family: sans-serif;">
+    <div style="background: #1a2942; padding: 40px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; border: 1px solid #ff6b35;">
+        <h2 style="color: #ff6b35; margin-bottom: 20px;">System Lockdown 🔐</h2>
+        <input type="text" id="gkUser" placeholder="Security Username" style="width: 250px; padding: 12px; margin-bottom: 10px; background: #0d2137; color: white; border: 1px solid #444; border-radius: 8px;">
+        <input type="password" id="gkPass" placeholder="Security Key" style="width: 250px; padding: 12px; margin-bottom: 20px; background: #0d2137; color: white; border: 1px solid #444; border-radius: 8px;">
+        <button onclick="checkGatekeeper()" class="primary-btn" style="width: 100%; background: #ff6b35; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">Verify Access</button>
+    </div>
+</div>
 <!-- Toast Notification Container -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -792,6 +799,53 @@
             btn.innerText = 'Save Changes';
         }
     }
+    // دالة التحقق من طبقة الحماية الأولى (Gatekeeper)
+async function checkGatekeeper() {
+    const userField = document.getElementById('gkUser').value;
+    const passField = document.getElementById('gkPass').value;
+    const btn = document.querySelector('#gatekeeperOverlay button');
+
+    if (!userField || !passField) {
+        return showToast('Please enter credentials', 'error');
+    }
+
+    try {
+        btn.disabled = true;
+        btn.innerText = 'Verifying... ⏳';
+
+        // بنبحث في الجدول عن الصف اللي فيه اليوزر والباسورد دول بالظبط
+        const { data, error } = await supabaseClient
+            .from('gatekeeper')
+            .select('id')
+            .eq('fixed_user', userField)
+            .eq('fixed_pass', passField)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+            // نجاح الدخول: نخفي الطبقة ونحفظ الحالة في الجلسة الحالية
+            document.getElementById('gatekeeperOverlay').style.display = 'none';
+            sessionStorage.setItem('gatekeeper_passed', 'true');
+            showToast('Access Granted! Welcome Mo', 'success');
+        } else {
+            showToast('Invalid Access Credentials!', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Connection failed', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Verify Access';
+    }
+}
+
+// التأكد إن الطبقة تفضل مقفولة لو مفيش جلسة نشطة
+window.addEventListener('DOMContentLoaded', () => {
+    if (sessionStorage.getItem('gatekeeper_passed') === 'true') {
+        document.getElementById('gatekeeperOverlay').style.display = 'none';
+    }
+});
 </script>
 </body>
 </html>
